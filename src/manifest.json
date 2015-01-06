@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "TED Talks",
+  "description": "Access latest TED Talks in the Files.app",
+
+  "version": "0.0.0.1",
+  "version_name": "DEV",
+
+  "icons": {
+    "16": "assets/icon_16.png",
+    "32": "assets/icon_32.png",
+    "128": "assets/icon_128.png",
+    "256": "assets/icon_256.png"
+  },
+
+  "permissions": [ "alarms", "unlimitedStorage", "storage", "<all_urls>", "fileSystemProvider" ],
+
+  "background": {
+    "persistent": false,
+    "scripts": [ "feed-parser.js", "background.js"]
+  }
+}
