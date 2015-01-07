@@ -8,7 +8,7 @@ function fetchTalks() {
 
       var title = item.title;
       // TODO: WTF?!
-      if (item.guid == 'eng.video.talk.ted.com:2063') {
+      if (item.guid == 'eng.hd.talk.ted.com:2063') {
         title = 'Ziyah Gafić: Everyday objects, tragic histories.mp4';
       }
 
