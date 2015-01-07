@@ -12,7 +12,6 @@
   },
 
   "permissions": [
-    "alarms",
     "unlimitedStorage",
     "storage",
     "http://*.ted.com/*",

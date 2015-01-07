@@ -1,15 +1,20 @@
-function fetchTalks() {
+function fetchTalks(callback) {
+  if (navigator.offLine) {
+    callback();
+    return;
+  }
   chrome.storage.local.get(null, function(localMetadata) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', 'http://feeds.feedburner.com/tedtalksHD');
     xhr.onload = function() {
+      var worker;
       var items = parseFeed(xhr.responseXML);
       for (var item of items) {
 
         var title = item.title;
         // TODO: WTF?!
         if (item.guid == 'eng.hd.talk.ted.com:2063') {
-          title = 'Ziyah Gafić: Everyday objects, tragic histories.mp4';
+          title = 'Ziyah Gafić: Everyday objects, tragic histories';
         }
 
         var metadata = {};
@@ -28,15 +33,20 @@ function fetchTalks() {
 
         // Fetch thumbnail if we don't have it already.
         if (!metadata['/' + title].thumbnail) {
+          // Create worker if it's not already done.
+          if (typeof(worker) === "undefined") {
+            var worker = new Worker('fetch-thumbnail.js');
+            worker.addEventListener('message', function(e) {
+              var updatedMetadata = e.data;
+              chrome.storage.local.set(updatedMetadata);
+            });
+          }
           worker.postMessage(metadata);
         }
       }
+      callback();
     }
-    var worker = new Worker('fetch-thumbnail.js');
-    worker.addEventListener('message', function(e) {
-      var updatedMetadata = e.data;
-      chrome.storage.local.set(updatedMetadata);
-    });
+    xhr.onerror = callback;
     xhr.send();
   });
 }
@@ -47,28 +57,30 @@ function sanitizeMetadata(metadata) {
 }
 
 function onGetMetadataRequested(options, onSuccess, onError) {
-  console.debug('onGetMetadataRequested', options.entryPath);
+  console.log('onGetMetadataRequested', options.entryPath);
 
   chrome.storage.local.get(options.entryPath, function(localMetadata) {
-    if (!localMetadata[options.entryPath]) {
+    var metadata = localMetadata[options.entryPath];
+    if (!metadata) {
       onError('NOT_FOUND');
     } else {
-      // If no thumbnail are requested, make sure the metadata don't include one.
+      // If no thumbnail is requested, make sure metadata don't include one.
       if (!options.thumbnail) {
-        delete(localMetadata[options.entryPath].thumbnail);
+        delete(metadata.thumbnail);
       }
-      localMetadata[options.entryPath] = sanitizeMetadata(localMetadata[options.entryPath]);
-      onSuccess(localMetadata[options.entryPath]);
+      onSuccess(sanitizeMetadata(metadata));
     }
   });
 }
 
 function onReadDirectoryRequested(options, onSuccess, onError) {
-  console.debug('onReadDirectoryRequested', options);
-  // TODO: Remove ugly code below.
-  chrome.storage.local.get(null, function(localMetadata) {
-    var videos = Object.keys(localMetadata).filter(function(entryPath) { return (entryPath !== '/'); }).map(function(entryPath) { return sanitizeMetadata(localMetadata[entryPath]); });
-    onSuccess(videos, false /* last call. */);
+  console.log('onReadDirectoryRequested', options);
+  fetchTalks(function(){
+    // TODO: Remove ugly code below.
+    chrome.storage.local.get(null, function(localMetadata) {
+      var videos = Object.keys(localMetadata).filter(function(entryPath) { return (entryPath !== '/'); }).map(function(entryPath) { return sanitizeMetadata(localMetadata[entryPath]); });
+      onSuccess(videos, false /* last call. */);
+    });
   });
 }
 
@@ -77,7 +89,7 @@ function onReadDirectoryRequested(options, onSuccess, onError) {
 var openedFiles = {};
 
 function onOpenFileRequested(options, onSuccess, onError) {
-  console.debug('onOpenFileRequested', options);
+  console.log('onOpenFileRequested', options);
   if (options.mode != 'READ' || options.create) {
     onError('INVALID_OPERATION');
   } else {
@@ -89,21 +101,18 @@ function onOpenFileRequested(options, onSuccess, onError) {
 }
 
 function onReadFileRequested(options, onSuccess, onError) {
-  console.debug('onReadFileRequested', options);
+  console.log('onReadFileRequested', options);
   chrome.storage.local.get(null, function(localMetadata) {
-
     var filePath = openedFiles[options.openRequestId];
     if (!filePath) {
       onError('SECURITY');
       return;
     }
 
-    console.log( 'bytes=' + options.offset + '-' + (options.length + options.offset -1));
-
     var xhr = new XMLHttpRequest();
     xhr.open('GET', localMetadata[filePath].url);
-    xhr.responseType = 'arraybuffer';
     xhr.setRequestHeader('Range', 'bytes=' + options.offset + '-' + (options.length + options.offset - 1));
+    xhr.responseType = 'arraybuffer';
     xhr.onload = function() {
       if (xhr.readyState === 4 && xhr.status === 206) {
         onSuccess(xhr.response, false /* last call */);
@@ -119,7 +128,7 @@ function onReadFileRequested(options, onSuccess, onError) {
 }
 
 function onCloseFileRequested(options, onSuccess, onError) {
-  console.debug('onCloseFileRequested', options);
+  console.log('onCloseFileRequested', options);
   if (!openedFiles[options.openRequestId]) {
     onError('INVALID_OPERATION');
     return;
@@ -130,6 +139,7 @@ function onCloseFileRequested(options, onSuccess, onError) {
 }
 
 function onInstalled() {
+  console.log('onInstalled');
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
@@ -142,11 +152,8 @@ function onInstalled() {
   var options = { fileSystemId: 'tedtalks', displayName: 'TED Talks' };
   chrome.fileSystemProvider.mount(options, function() {
     if (!chrome.runtime.lastError)
-      fetchTalks();
+      fetchTalks(function(){});
   });
-
-  // Fetch Talks periodically.
-  chrome.alarms.create('fetchTalks', { 'periodInMinutes': 1 });
 }
 
 chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
@@ -154,7 +161,5 @@ chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRe
 chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
 chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
 chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
-
-chrome.alarms.onAlarm.addListener(fetchTalks)
 
 chrome.runtime.onInstalled.addListener(onInstalled);
