@@ -1,12 +1,12 @@
-function fetchTalks() {    
+function fetchTalks() {
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'http://feeds.feedburner.com/TEDTalks_video');
+  xhr.open('GET', 'http://feeds.feedburner.com/tedtalksHD');
   xhr.onload = function() {
 
-    var items = parseDocument(xhr.responseXML);
+    var items = parseFeed(xhr.responseXML);
     for (var item of items) {
 
-      var title = item.title + '.mp4';
+      var title = item.title;
       // TODO: WTF?!
       if (item.guid == 'eng.video.talk.ted.com:2063') {
         title = 'Ziyah Gafić: Everyday objects, tragic histories.mp4';
@@ -20,7 +20,7 @@ function fetchTalks() {
         modificationTime: item.pubDate,
         mimeType: item.enclosure.type,
         imageUrl: item.imageUrl,
-        url: item.url
+        url: item.enclosure.url
       };
       // Save talk metadata locally.
       chrome.storage.local.set(metadata);
@@ -32,10 +32,10 @@ function fetchTalks() {
   }
   var worker = new Worker('fetch-thumbnail.js');
   worker.addEventListener('message', function(e) {
-    var updatedMetadata = e.data; 
+    var updatedMetadata = e.data;
     chrome.storage.local.set(updatedMetadata);
   });
-  xhr.send(); 
+  xhr.send();
 }
 
 function sanitizeMetadata(metadata) {
@@ -44,8 +44,8 @@ function sanitizeMetadata(metadata) {
 }
 
 function onGetMetadataRequested(options, onSuccess, onError) {
-  console.log('onGetMetadataRequested', options.entryPath);
-   
+  console.debug('onGetMetadataRequested', options.entryPath);
+
   chrome.storage.local.get(options.entryPath, function(localMetadata) {
     if (!localMetadata[options.entryPath]) {
       onError('NOT_FOUND');
@@ -57,11 +57,11 @@ function onGetMetadataRequested(options, onSuccess, onError) {
       localMetadata[options.entryPath] = sanitizeMetadata(localMetadata[options.entryPath]);
       onSuccess(localMetadata[options.entryPath]);
     }
-  });  
+  });
 }
 
 function onReadDirectoryRequested(options, onSuccess, onError) {
-  console.log('onReadDirectoryRequested', options); 
+  console.debug('onReadDirectoryRequested', options);
   // TODO: Remove ugly code below.
   chrome.storage.local.get(null, function(localMetadata) {
     var videos = Object.keys(localMetadata).filter(function(entryPath) { return (entryPath !== '/'); }).map(function(entryPath) { return sanitizeMetadata(localMetadata[entryPath]); });
@@ -69,8 +69,65 @@ function onReadDirectoryRequested(options, onSuccess, onError) {
   });
 }
 
+// A map with currently opened files. As key it has requestId of
+// openFileRequested and as a value the file path.
+var openedFiles = {};
+
+function onOpenFileRequested(options, onSuccess, onError) {
+  console.debug('onOpenFileRequested', options);
+  if (options.mode != 'READ' || options.create) {
+    onError('INVALID_OPERATION');
+  } else {
+    chrome.storage.local.get(null, function(metadata) {
+      openedFiles[options.requestId] = options.filePath;
+      onSuccess();
+    });
+  }
+}
+
+function onReadFileRequested(options, onSuccess, onError) {
+  console.debug('onReadFileRequested', options);
+  chrome.storage.local.get(null, function(localMetadata) {
+
+    var filePath = openedFiles[options.openRequestId];
+    if (!filePath) {
+      onError('SECURITY');
+      return;
+    }
+
+    console.log( 'bytes=' + options.offset + '-' + (options.length + options.offset -1));
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', localMetadata[filePath].url);
+    xhr.responseType = 'arraybuffer';
+    xhr.setRequestHeader('Range', 'bytes=' + options.offset + '-' + (options.length + options.offset - 1));
+    xhr.onload = function() {
+      if (xhr.readyState === 4 && xhr.status === 206) {
+        onSuccess(xhr.response, false /* last call */);
+      } else {
+        onError('NOT_FOUND');
+      }
+    }
+    xhr.onerror = function() {
+      onError('NOT_FOUND');
+    }
+    xhr.send();
+  });
+}
+
+function onCloseFileRequested(options, onSuccess, onError) {
+  console.debug('onCloseFileRequested', options);
+  if (!openedFiles[options.openRequestId]) {
+    onError('INVALID_OPERATION');
+    return;
+  }
+
+  delete openedFiles[options.openRequestId];
+  onSuccess();
+}
+
 function onInstalled() {
-  
+
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
@@ -78,20 +135,23 @@ function onInstalled() {
     size: 0,
     modificationTime: new Date().toString()
   }});
-  
+
   // Mount the file system.
   var options = { fileSystemId: 'tedtalks', displayName: 'TED Talks' };
-  chrome.fileSystemProvider.mount(options, function() {    
+  chrome.fileSystemProvider.mount(options, function() {
     if (!chrome.runtime.lastError)
       fetchTalks();
   });
-  
+
   // Fetch Talks periodically.
   chrome.alarms.create('fetchTalks', { 'periodInMinutes': 1 });
 }
 
 chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
 chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
+chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
+chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
+chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
 
 chrome.alarms.onAlarm.addListener(fetchTalks)
 

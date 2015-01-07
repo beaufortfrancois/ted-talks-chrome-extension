@@ -7,13 +7,20 @@
   "version_name": "DEV",
 
   "icons": {
-    "16": "assets/icon_16.png",
     "32": "assets/icon_32.png",
-    "128": "assets/icon_128.png",
-    "256": "assets/icon_256.png"
+    "128": "assets/icon_128.png"
   },
 
-  "permissions": [ "alarms", "unlimitedStorage", "storage", "<all_urls>", "fileSystemProvider" ],
+  "permissions": [
+    "alarms",
+    "unlimitedStorage",
+    "storage",
+    "http://*.ted.com/*",
+    "http://feeds.feedburner.com/*",
+    "fileSystemProvider"
+  ],
+
+  "minimum_chrome_version": "41.0.2252.3",
 
   "background": {
     "persistent": false,

@@ -1,4 +1,4 @@
-viewself.addEventListener('message', function(e) {
+self.addEventListener('message', function(e) {
   var metadata = e.data;
   var key = Object.keys(metadata)[0];
   var xhr = new XMLHttpRequest();
