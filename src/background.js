@@ -1,41 +1,44 @@
 function fetchTalks() {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'http://feeds.feedburner.com/tedtalksHD');
-  xhr.onload = function() {
+  chrome.storage.local.get(null, function(localMetadata) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'http://feeds.feedburner.com/tedtalksHD');
+    xhr.onload = function() {
+      var items = parseFeed(xhr.responseXML);
+      for (var item of items) {
 
-    var items = parseFeed(xhr.responseXML);
-    for (var item of items) {
+        var title = item.title;
+        // TODO: WTF?!
+        if (item.guid == 'eng.hd.talk.ted.com:2063') {
+          title = 'Ziyah Gafić: Everyday objects, tragic histories.mp4';
+        }
 
-      var title = item.title;
-      // TODO: WTF?!
-      if (item.guid == 'eng.hd.talk.ted.com:2063') {
-        title = 'Ziyah Gafić: Everyday objects, tragic histories.mp4';
+        var metadata = {};
+        metadata['/' + title] = localMetadata['/' + title] ? localMetadata['/' + title] : {};
+
+        metadata['/' + title].isDirectory = false;
+        metadata['/' + title].name = title;
+        metadata['/' + title].size = parseInt(item.enclosure.length);
+        metadata['/' + title].modificationTime = item.pubDate;
+        metadata['/' + title].mimeType = item.enclosure.type;
+        metadata['/' + title].imageUrl = item.imageUrl;
+        metadata['/' + title].url = item.enclosure.url;
+
+        // Save talk metadata locally.
+        chrome.storage.local.set(metadata);
+
+        // Fetch thumbnail if we don't have it already.
+        if (!metadata['/' + title].thumbnail) {
+          worker.postMessage(metadata);
+        }
       }
-
-      var metadata = {};
-      metadata['/' + title] = {
-        isDirectory: false,
-        name: title,
-        size: parseInt(item.enclosure.length),
-        modificationTime: item.pubDate,
-        mimeType: item.enclosure.type,
-        imageUrl: item.imageUrl,
-        url: item.enclosure.url
-      };
-      // Save talk metadata locally.
-      chrome.storage.local.set(metadata);
-
-      // TODO: Fetch thumbnail if we don't have it already.
-      worker.postMessage(metadata);
-
     }
-  }
-  var worker = new Worker('fetch-thumbnail.js');
-  worker.addEventListener('message', function(e) {
-    var updatedMetadata = e.data;
-    chrome.storage.local.set(updatedMetadata);
+    var worker = new Worker('fetch-thumbnail.js');
+    worker.addEventListener('message', function(e) {
+      var updatedMetadata = e.data;
+      chrome.storage.local.set(updatedMetadata);
+    });
+    xhr.send();
   });
-  xhr.send();
 }
 
 function sanitizeMetadata(metadata) {
@@ -65,7 +68,7 @@ function onReadDirectoryRequested(options, onSuccess, onError) {
   // TODO: Remove ugly code below.
   chrome.storage.local.get(null, function(localMetadata) {
     var videos = Object.keys(localMetadata).filter(function(entryPath) { return (entryPath !== '/'); }).map(function(entryPath) { return sanitizeMetadata(localMetadata[entryPath]); });
-    onSuccess(videos, false /* Last call. */);
+    onSuccess(videos, false /* last call. */);
   });
 }
 
@@ -127,7 +130,6 @@ function onCloseFileRequested(options, onSuccess, onError) {
 }
 
 function onInstalled() {
-
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
