@@ -148,7 +148,7 @@ window.onload = function() {
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
-    name: '/',
+    name: 'TED Talks',
     size: 0,
     modificationTime: new Date().toString()
   }});
