@@ -138,8 +138,18 @@ function onCloseFileRequested(options, onSuccess, onError) {
   onSuccess();
 }
 
-function onInstalled() {
-  console.log('onInstalled');
+function onUnmountRequested(options, onSuccess, onError) {
+  onSuccess();
+}
+
+chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
+chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
+chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
+chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
+chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
+chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
+
+window.onload = function() {
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
@@ -156,15 +166,3 @@ function onInstalled() {
   });
 }
 
-function onUnmountRequested(options, onSuccess, onError) {
-  onSuccess();
-}
-
-chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
-chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
-chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
-chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
-chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
-chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
-
-chrome.runtime.onInstalled.addListener(onInstalled);
