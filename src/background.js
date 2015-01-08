@@ -12,11 +12,6 @@ function fetchTalks(callback) {
       for (var item of items) {
 
         var title = item.title;
-        // TODO: WTF?!
-        if (item.guid == 'eng.hd.talk.ted.com:2063') {
-          title = 'Ziyah Gafić: Everyday objects, tragic histories';
-        }
-
         var metadata = {};
         metadata['/' + title] = localMetadata['/' + title] ? localMetadata['/' + title] : {};
 

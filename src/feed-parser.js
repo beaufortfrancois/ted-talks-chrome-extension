@@ -26,7 +26,7 @@ function parseFeedItem(fragment) {
         item[node.tagName] = node.textContent;
         break;
       case 'itunes:subtitle':
-        item['title'] = node.textContent;
+        item['title'] = node.textContent.normalize('NFKC');
         break;
       case 'media:thumbnail':
         item['imageUrl'] = node.getAttribute('url');
