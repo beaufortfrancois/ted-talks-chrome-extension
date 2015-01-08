@@ -3,8 +3,7 @@
   "name": "TED Talks",
   "description": "Access latest TED Talks in the Files.app",
 
-  "version": "0.0.0.1",
-  "version_name": "DEV",
+  "version": "0.1",
 
   "icons": {
     "32": "assets/icon_32.png",
