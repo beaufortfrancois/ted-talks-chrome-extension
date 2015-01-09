@@ -3,7 +3,7 @@
   "name": "TED Talks",
   "description": "Access latest TED Talks in the Files.app",
 
-  "version": "0.2",
+  "version": "0.3",
 
   "icons": {
     "32": "assets/icon_32.png",
@@ -18,7 +18,7 @@
     "fileSystemProvider"
   ],
 
-  "minimum_chrome_version": "40.0.2214.43 ",
+  "minimum_chrome_version": "40.0.2214.72",
 
   "background": {
     "persistent": false,
