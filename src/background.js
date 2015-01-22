@@ -111,6 +111,12 @@ function onReadFileRequested(options, onSuccess, onError) {
     xhr.onload = function() {
       if (xhr.readyState === 4 && xhr.status === 206) {
         onSuccess(xhr.response, false /* last call */);
+        if (localMetadata[filePath].url !== xhr.responseURL) {
+          var metadata = {};
+          metadata[filePath] = localMetadata[filePath];
+          metadata[filePath].url = xhr.responseURL;
+          chrome.storage.local.set(metadata);
+        }
       } else {
         onError('NOT_FOUND');
       }
