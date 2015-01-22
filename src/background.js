@@ -104,21 +104,33 @@ function onReadFileRequested(options, onSuccess, onError) {
       return;
     }
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', localMetadata[filePath].url);
-    xhr.setRequestHeader('Range', 'bytes=' + options.offset + '-' + (options.length + options.offset - 1));
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = function() {
-      if (xhr.readyState === 4 && xhr.status === 206) {
-        onSuccess(xhr.response, false /* last call */);
-      } else {
+    var sizeKB = 256; // Used to request smaller chunks than 512KB.
+    var chunkLength = Math.min(options.length, 1024 * sizeKB);
+    (function getVideo(offset) {
+      chunkLength = Math.min(chunkLength, options.length + options.offset - offset);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', localMetadata[filePath].url);
+      xhr.setRequestHeader('Range', 'bytes=' + offset + '-' + (chunkLength + offset - 1));
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function() {
+        if (xhr.readyState === 4 && xhr.status === 206) {
+
+          var lastBytePos = parseInt(xhr.getResponseHeader('Content-Range').split('-')[1].split('/')[0]);
+          var hasMore = (lastBytePos < (options.length + options.offset - 1));
+          onSuccess(xhr.response, hasMore);
+          if (hasMore) {
+            getVideo(offset + chunkLength);
+          }
+        } else {
+          onError('NOT_FOUND');
+        }
+      }
+      xhr.onerror = function() {
         onError('NOT_FOUND');
       }
-    }
-    xhr.onerror = function() {
-      onError('NOT_FOUND');
-    }
-    xhr.send();
+      xhr.send();
+    })(options.offset);
   });
 }
 
