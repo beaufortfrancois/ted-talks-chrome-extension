@@ -17,8 +17,11 @@
     "http://feeds.feedburner.com/*",
     "fileSystemProvider"
   ],
+  "file_system_provider_capabilities": {
+    "source": "network"
+  },
 
-  "minimum_chrome_version": "40.0.2214.72",
+  "minimum_chrome_version": "42",
 
   "background": {
     "persistent": false,
