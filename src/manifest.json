@@ -18,10 +18,12 @@
     "fileSystemProvider"
   ],
   "file_system_provider_capabilities": {
+    "configurable": false,
+    "multiple_mounts": false,
     "source": "network"
   },
 
-  "minimum_chrome_version": "42",
+  "minimum_chrome_version": "44.0.2403.5",
 
   "background": {
     "persistent": false,

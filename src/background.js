@@ -140,10 +140,13 @@ function onCloseFileRequested(options, onSuccess, onError) {
 }
 
 function onUnmountRequested(options, onSuccess, onError) {
+  console.log('onUnmountRequested', options);
   onSuccess();
+  chrome.fileSystemProvider.unmount({ fileSystemId: options.fileSystemId });
 }
 
 function onMountRequested(onSuccess, onError) {
+  console.log('onMountRequested');
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
