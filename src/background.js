@@ -143,14 +143,7 @@ function onUnmountRequested(options, onSuccess, onError) {
   onSuccess();
 }
 
-chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
-chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
-chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
-chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
-chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
-chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
-
-window.onload = function() {
+function onMountRequested(onSuccess, onError) {
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
@@ -162,8 +155,18 @@ window.onload = function() {
   // Mount the file system.
   var options = { fileSystemId: 'tedtalks', displayName: 'TED Talks' };
   chrome.fileSystemProvider.mount(options, function() {
-    if (!chrome.runtime.lastError)
-      fetchTalks(function(){});
+    if (chrome.runtime.lastError) {
+      onError();
+    } else {
+      fetchTalks(onSuccess);
+    }
   });
 }
 
+chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
+chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
+chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
+chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
+chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
+chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
+chrome.fileSystemProvider.onMountRequested.addListener(onMountRequested);
