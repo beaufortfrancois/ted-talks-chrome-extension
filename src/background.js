@@ -154,19 +154,22 @@ function onUnmountRequested(options, onSuccess, onError) {
 }
 
 function mountFileSystem() {
-  // Save root metadata.
-  chrome.storage.local.set({'/': {
-    isDirectory: true,
-    name: '',
-    size: 0,
-    modificationTime: new Date().toString()
-  }});
+  // Clear stale metadata first.
+  chrome.storage.local.clear(function() {
+    // Save root metadata.
+    chrome.storage.local.set({'/': {
+      isDirectory: true,
+      name: '',
+      size: 0,
+      modificationTime: new Date().toString()
+    }});
 
-  // Mount the file system.
-  var options = { fileSystemId: 'tedtalks', displayName: 'TED Talks' };
-  chrome.fileSystemProvider.mount(options, function() {
-    if (!chrome.runtime.lastError)
-      fetchTalks(function(){});
+    // Mount the file system.
+    var options = { fileSystemId: 'tedtalks', displayName: 'TED Talks' };
+    chrome.fileSystemProvider.mount(options, function() {
+      if (!chrome.runtime.lastError)
+        fetchTalks(function(){});
+    });
   });
 }
 
