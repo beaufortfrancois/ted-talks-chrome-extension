@@ -139,18 +139,21 @@ function onCloseFileRequested(options, onSuccess, onError) {
   onSuccess();
 }
 
-function onUnmountRequested(options, onSuccess, onError) {
+function onMountRequested(options, onSuccess, onError) {
+  console.log('onMountRequested', options);
+
+  mountFileSystem();
   onSuccess();
 }
 
-chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
-chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
-chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
-chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
-chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
-chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
+function onUnmountRequested(options, onSuccess, onError) {
+  console.log('onUnmountRequested', options);
 
-window.onload = function() {
+  chrome.fileSystemProvider.unmount({ fileSystemId: options.fileSystemId });
+  onSuccess();
+}
+
+function mountFileSystem() {
   // Save root metadata.
   chrome.storage.local.set({'/': {
     isDirectory: true,
@@ -167,3 +170,13 @@ window.onload = function() {
   });
 }
 
+
+chrome.fileSystemProvider.onGetMetadataRequested.addListener(onGetMetadataRequested);
+chrome.fileSystemProvider.onReadDirectoryRequested.addListener(onReadDirectoryRequested);
+chrome.fileSystemProvider.onOpenFileRequested.addListener(onOpenFileRequested);
+chrome.fileSystemProvider.onReadFileRequested.addListener(onReadFileRequested);
+chrome.fileSystemProvider.onCloseFileRequested.addListener(onCloseFileRequested);
+chrome.fileSystemProvider.onMountRequested && chrome.fileSystemProvider.onMountRequested.addListener(onMountRequested);
+chrome.fileSystemProvider.onUnmountRequested.addListener(onUnmountRequested);
+
+mountFileSystem();
