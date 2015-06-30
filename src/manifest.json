@@ -3,7 +3,7 @@
   "name": "TED Talks",
   "description": "Access latest TED Talks in the Files.app",
 
-  "version": "0.7",
+  "version": "0.7.1",
 
   "icons": {
     "32": "assets/icon_32.png",
@@ -13,7 +13,7 @@
   "permissions": [
     "unlimitedStorage",
     "storage",
-    "http://*.ted.com/*",
+    "http://tedcdnpe-a.akamaihd.net/*",
     "http://feeds.feedburner.com/*",
     "fileSystemProvider"
   ],
