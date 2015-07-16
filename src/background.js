@@ -11,8 +11,7 @@ function fetchTalks(callback) {
       var items = parseFeed(xhr.responseXML);
       for (var item of items) {
 
-        // TODO: Remove .mp4 suffix when crbug.com/446435 is fixed.
-        var title = item.title + '.mp4';
+        var title = item.title;
         var metadata = {};
         metadata['/' + title] = localMetadata['/' + title] ? localMetadata['/' + title] : {};
 
